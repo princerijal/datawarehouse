@@ -74,3 +74,50 @@ SELECT DISTINCT
     cst_marital_status
 FROM bronze.crm_cust_info;
 GO
+
+USE DataWarehouse;
+GO
+
+
+SELECT * FROM silver.crm_cust_info
+
+-- Check For Nulls or Duplicates in Primary Key
+-- Expectation : No result
+
+
+SELECT cst_id, 
+	COUNT(*)
+	FROM silver.crm_cust_info
+	GROUP BY cst_id
+	HAVING COUNT(*) > 1 OR cst_id IS NULL
+
+=========================================================================================
+    --POST TEST
+    ===================================================================================
+
+-- Check for unwanted spaces
+-- Expectations : No result
+
+SELECT cst_firstName 
+	FROM silver.crm_cust_info
+	WHERE cst_firstName IS NULL OR cst_firstName <> TRIM(cst_firstname)
+
+
+-- Check for unwanted spaces
+-- Expectations : No result
+
+SELECT cst_lastName 
+	FROM silver.crm_cust_info
+	WHERE cst_lastName IS NULL OR cst_lastName <> TRIM(cst_lastname)
+
+
+	-- DAta Standarization and Consistency
+
+SELECT DISTINCT cst_gndr
+	FROM silver.crm_cust_info
+
+
+SELECT DISTINCT cst_marital_status
+	FROM silver.crm_cust_info
+
+
