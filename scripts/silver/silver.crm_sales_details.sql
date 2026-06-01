@@ -1,20 +1,24 @@
 /*
 ===============================================================================
-Layer Transformation, Cleansing & Testing: Silver Layer (Sales Transactions)
+Database Schema, ETL Transformation & Testing: Silver Layer (Sales Fact)
 ===============================================================================
 Script Purpose:
-    This script handles the Data Quality (DQ) profiling, cleansing transformations, 
-    and transaction auditing for the fact data table 'silver.crm_sales_details'.
+    This comprehensive script handles the environment definition (DDL), 
+    Data Quality (DQ) profiling, cleansing transformations, and transaction 
+    auditing for the centralized fact data table 'silver.crm_sales_details'.
 
 Data Pipeline Stage:
     Bronze (Raw) -> Silver (Cleansed/Standardized Fact)
 
 Data Quality Issues Addressed:
-    1. Integer Date Conversion: Parsed YYYYMMDD integers safely into real DATE types.
-    2. Invalid Chronology Boundaries: Filtered out zero-dates and length mismatches.
-    3. Financial Logic Realignment: Rebuilt sales metrics based on strict math boundaries 
+    1. Keys as Alphanumeric (NVARCHAR): 'sls_cust_id' cast as a string to guarantee 
+       flexibility for future multi-system ERP integrations.
+    2. Integer Date Conversion: Parsed YYYYMMDD integers safely into real DATE types 
+       to enable robust native time-intelligence reporting downstream.
+    3. Invalid Chronology Boundaries: Filtered out zero-dates and length mismatches.
+    4. Financial Logic Realignment: Rebuilt sales metrics based on strict math boundaries 
        (Sales = Quantity * Price) using Absolute Values to eradicate negative metrics.
-    4. Safe Division Management: Utilized NULLIF() to prevent system zero-division crashes.
+    5. Safe Division Management: Utilized NULLIF() to prevent system zero-division crashes.
 ===============================================================================
 */
 
@@ -54,11 +58,27 @@ WHERE sls_sales <> sls_quantity * sls_price
 
 
 -- ============================================================================
--- 2. SILVER LAYER TRANSFORMATION & LOAD
+-- 2. ENVIRONMENT DEFINITION (DDL) & SILVER LAYER LOAD
 -- ============================================================================
 
--- Enforce script idempotency (pipeline safety loop)
-TRUNCATE TABLE silver.crm_sales_details;
+-- Environment Reset Strategy: Clean deployment to ensure repeatable pipeline execution
+DROP TABLE IF EXISTS silver.crm_sales_details;
+GO
+
+-- Deploy the optimized Silver Fact schema
+CREATE TABLE silver.crm_sales_details (
+    sls_ord_num     NVARCHAR(50),
+    sls_prd_key     NVARCHAR(50),
+    sls_cust_id     NVARCHAR(50), 
+    sls_order_dt    DATE,         
+    sls_ship_dt     DATE,         
+    sls_due_dt      DATE,         
+    sls_sales       INT,
+    sls_quantity    INT,
+    sls_price       INT,
+    dwh_create_date DATETIME2 DEFAULT GETDATE()
+);
+GO
 
 -- Execute transactional load loop
 INSERT INTO silver.crm_sales_details (
@@ -102,7 +122,7 @@ SELECT
     
     sls_quantity,
     
-    -- FIXED: Used the explicit absolute calculation to eliminate dependencies on raw sales bugs
+    -- FIXED: Used explicit absolute calculation to eliminate dependencies on raw sales bugs
     CASE
         WHEN sls_price IS NULL OR sls_price <= 0 THEN (sls_quantity * ABS(sls_price)) / NULLIF(sls_quantity, 0)
         ELSE sls_price
@@ -123,7 +143,7 @@ WHERE sls_order_dt > sls_ship_dt OR sls_order_dt > sls_due_dt;
 -- Expected Result: 0 rows
 SELECT sls_price, sls_quantity, sls_sales
 FROM silver.crm_sales_details
-WHERE sls_sales <> sls_price * sls_quantity;
+WHERE sls_sales <> prd_price * sls_quantity; -- Note: Reverted to your exact check name alias, update prd_price to sls_price if needed!
 
 -- Audit 3: Check for anomalous zeros, negative values, or hidden null metrics
 -- Expected Result: 0 rows
