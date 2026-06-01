@@ -2,74 +2,81 @@
 
 ## 📋 Project Overview
 
-This project demonstrates the design and implementation of a modern, enterprise-grade Data Warehouse built entirely on Microsoft SQL Server using a layered Medallion Architecture approach.
+This project demonstrates the design and implementation of an enterprise-grade Data Warehouse built entirely on Microsoft SQL Server using a layered Medallion Architecture approach.
 
-The solution ingests operational data from multiple business systems, including Customer Relationship Management (CRM) and Enterprise Resource Planning (ERP) platforms, and transforms it through a structured pipeline consisting of Bronze, Silver, and Gold layers.
+The solution ingests operational data from multiple business systems, including Customer Relationship Management (CRM) and Enterprise Resource Planning (ERP) platforms, and transforms it through three distinct layers:
+
+* 🥉 Bronze Layer – Raw Data Ingestion
+* 🥈 Silver Layer – Data Cleansing & Standardization
+* 🥇 Gold Layer – Business Intelligence & Semantic Modeling
 
 The primary objective is to establish a scalable, maintainable, and analytics-ready data platform that ensures:
 
 * Reliable data ingestion
-* Data quality enforcement
-* Standardized business entities
+* Enterprise data quality standards
+* Cross-system data integration
 * Historical data preservation
-* High-performance analytical reporting
+* Business-friendly analytical models
+* End-to-end data lineage
 
-The final output is a dimensional Star Schema optimized for Business Intelligence tools such as Power BI, Tableau, and SQL Server Reporting Services (SSRS).
+The Gold Layer is implemented using SQL Server Views that expose a virtualized Star Schema optimized for Power BI, Tableau, SSRS, and ad-hoc analytics.
 
 ---
 
-# 🏗️ Data Warehouse Architecture
+# 🏗️ Architecture Overview
 
-The warehouse follows a layered architecture to guarantee data lineage, fault isolation, and reproducible processing.
+The warehouse follows a layered architecture to guarantee fault isolation, reproducibility, and complete data traceability.
 
 ```text
-                    +--------------------+
-                    | CRM Source Systems |
-                    +---------+----------+
-                              |
-                              |
-                    +---------v----------+
-                    | ERP Source Systems |
-                    +---------+----------+
-                              |
-                              v
-+----------------------------------------------------------------+
-| 🥉 BRONZE LAYER                                                 |
-| Raw Data Ingestion & Staging                                   |
-|                                                                |
-| • crm_cust_info                                                |
-| • crm_prd_info                                                 |
-| • crm_sales_details                                            |
-| • erp_cust_az12                                                |
-| • erp_loc_a101                                                 |
-| • erp_px_cat_g1v2                                              |
-+----------------------------------------------------------------+
-                              |
-                              v
-+----------------------------------------------------------------+
-| 🥈 SILVER LAYER                                                 |
-| Data Cleansing, Validation & Standardization                   |
-|                                                                |
-| • Data Quality Enforcement                                     |
-| • Business Key Reconciliation                                  |
-| • Date Standardization                                         |
-| • Customer & Product Mastering                                 |
-| • Transaction Validation                                       |
-+----------------------------------------------------------------+
-                              |
-                              v
-+----------------------------------------------------------------+
-| 🥇 GOLD LAYER                                                   |
-| Business Intelligence & Star Schema                            |
-|                                                                |
-| Dimensions:                                                    |
-| • dim_customers                                                |
-| • dim_products                                                 |
-|                                                                |
-| Fact Table:                                                    |
-| • fact_sales                                                   |
-+----------------------------------------------------------------+
+                    +----------------------+
+                    |      CRM Sources     |
+                    +----------+-----------+
+                               |
+                               |
+                    +----------v-----------+
+                    |      ERP Sources     |
+                    +----------+-----------+
+                               |
+                               v
++-------------------------------------------------------------------+
+| 🥉 BRONZE LAYER                                                    |
+| Raw Data Ingestion & Staging                                      |
+|                                                                   |
+| • crm_cust_info                                                   |
+| • crm_prd_info                                                    |
+| • crm_sales_details                                               |
+| • erp_cust_az12                                                   |
+| • erp_loc_a101                                                    |
+| • erp_px_cat_g1v2                                                 |
++-------------------------------------------------------------------+
+                               |
+                               v
++-------------------------------------------------------------------+
+| 🥈 SILVER LAYER                                                    |
+| Data Cleansing, Validation & Standardization                     |
+|                                                                   |
+| • Data Quality Enforcement                                        |
+| • Business Key Reconciliation                                     |
+| • Historical Timeline Repair                                      |
+| • Date Standardization                                            |
+| • Customer & Product Mastering                                    |
++-------------------------------------------------------------------+
+                               |
+                               v
++-------------------------------------------------------------------+
+| 🥇 GOLD LAYER                                                      |
+| Virtualized Star Schema (SQL Views)                               |
+|                                                                   |
+| Dimension Views                                                   |
+| • gold.dim_customers                                               |
+| • gold.dim_products                                                |
+|                                                                   |
+| Fact View                                                         |
+| • gold.fact_sales                                                  |
++-------------------------------------------------------------------+
 ```
+
+> **Note:** The Gold Layer is implemented entirely through SQL Views rather than physical tables. This virtualized approach provides a lightweight semantic layer while maintaining a single source of truth within the Silver layer.
 
 ---
 
@@ -120,32 +127,34 @@ datawarehouse/
 
 ## Purpose
 
-The Bronze Layer acts as the immutable landing zone for all source data extracts.
+The Bronze Layer serves as the immutable landing zone for source system extracts.
 
-This layer preserves source data exactly as received without applying business transformations.
+Data is loaded exactly as received from CRM and ERP systems without applying business transformations or validation rules.
 
-## Key Characteristics
+## Characteristics
 
-* Raw data preservation
-* Schema flexibility
+* Raw source preservation
+* Flexible schema design
 * No business constraints
 * Historical auditability
 * Fault-tolerant ingestion
+* Re-runnable loading processes
 
 ## Components
 
-| Script                      | Purpose                                |
+| Script                      | Description                            |
 | --------------------------- | -------------------------------------- |
 | build_tables.sql            | Creates Bronze staging tables          |
 | create_stored_procedure.sql | Creates automated ingestion procedures |
-| populating_tables.sql       | Loads CRM and ERP source data          |
+| populating_tables.sql       | Loads CRM and ERP source datasets      |
 
 ## Features
 
-* Bulk-load processing
+* Bulk loading framework
 * TRY...CATCH error handling
-* Execution logging
-* Rerunnable ingestion framework
+* Execution tracking
+* Load monitoring
+* Truncate-and-reload pattern
 
 ---
 
@@ -153,41 +162,41 @@ This layer preserves source data exactly as received without applying business t
 
 ## Purpose
 
-The Silver Layer transforms raw source data into trusted enterprise datasets.
+The Silver Layer transforms raw operational data into trusted enterprise datasets.
 
-This layer enforces business rules, data quality standards, and cross-system integration logic.
+This layer applies data quality checks, business rules, standardization logic, and cross-system integrations.
+
+---
 
 ## Key Transformations
 
 ### Customer Standardization
 
-* Remove leading/trailing spaces using TRIM()
-* Standardize customer attributes
-* Validate customer identifiers
+* Removes leading and trailing whitespace
+* Standardizes customer attributes
+* Validates customer identifiers
 
 ### Product Timeline Reconstruction
 
-Product history records are reconstructed using:
+Historical product records contained invalid date sequences.
 
-```sql
-LEAD()
-```
-
-to ensure valid product lifecycle periods.
+The pipeline reconstructs product history using SQL window functions to create valid historical intervals.
 
 ### ERP Customer Integration
 
-Legacy identifiers containing prefixes such as:
+Legacy ERP identifiers containing prefixes such as:
 
 ```text
 NAS12345
 ```
 
-are standardized using string manipulation techniques to restore CRM-to-ERP linkage.
+are standardized to align with CRM customer records.
 
 ### Geographic Standardization
 
-Country codes such as:
+Country values are normalized into standardized business formats.
+
+Examples:
 
 ```text
 US
@@ -197,118 +206,160 @@ DE
 Germany
 ```
 
-are consolidated into standardized business values.
+become consistent reporting values.
 
 ### Transaction Validation
 
-Financial integrity is enforced through:
+Sales transactions are validated using business rules such as:
 
 ```text
 Sales Amount = Quantity × Price
 ```
 
-Additional validations include:
+Additional checks include:
 
-* Future date removal
+* Future date prevention
+* Missing value handling
 * Negative value correction
-* Null handling
 * Date standardization
 
 ---
 
-# 🥇 Gold Layer – Business Intelligence Modeling
+# 🥇 Gold Layer – Business Intelligence & Semantic Modeling
 
 ## Purpose
 
-The Gold Layer delivers business-ready datasets optimized for reporting and analytics.
+The Gold Layer provides business-ready analytical datasets through SQL Views.
 
-Rather than storing duplicated tables, the Gold Layer is implemented using virtualized SQL views.
+Rather than storing duplicated dimensional tables, the Gold Layer exposes a virtualized Star Schema built directly on top of the cleansed Silver layer.
 
-This approach provides:
+---
 
-* Real-time data availability
-* Reduced storage requirements
-* Simplified maintenance
-* Faster deployment cycles
+## Why Views Instead of Physical Tables?
 
-## Star Schema Design
+The Gold layer intentionally uses Views instead of materialized tables.
 
-### Dimension Views
+### Benefits
 
-#### dim_customers
+* Eliminates data duplication
+* Reduces storage requirements
+* Simplifies maintenance
+* Provides real-time access to Silver-layer data
+* Ensures a single source of truth
+* Removes additional ETL refresh dependencies
 
-Provides:
+---
+
+## Gold Layer Objects
+
+### gold.dim_customers
+
+Customer dimension view containing:
 
 * Customer demographics
-* Customer geography
-* Customer attributes
+* Geographic attributes
+* Customer lifecycle information
 
-#### dim_products
+### gold.dim_products
 
-Provides:
+Product dimension view containing:
 
 * Product hierarchy
-* Product category
-* Product metadata
+* Product categorization
+* Product attributes
+* Product history information
 
-### Fact View
+### gold.fact_sales
 
-#### fact_sales
-
-Captures:
+Sales fact view containing:
 
 * Sales transactions
 * Revenue metrics
 * Product relationships
 * Customer relationships
+* Date dimensions
 
 ---
 
-# ⚙️ Pipeline Design Features
-
-## Idempotent Processing
-
-All scripts support safe reruns through controlled truncation and reload mechanisms.
-
-Benefits:
-
-* No duplicate data
-* Consistent execution
-* Simplified deployment
-
----
-
-## Surrogate Key Generation
-
-Business identifiers are replaced with warehouse-generated surrogate keys using:
-
-```sql
-ROW_NUMBER()
-```
-
-Benefits:
-
-* Faster joins
-* Stable relationships
-* Improved analytical performance
-
----
-
-## Data Lineage
-
-The architecture maintains complete traceability from:
+# ⭐ Virtualized Star Schema
 
 ```text
-Source Systems
-      ↓
-Bronze Layer
-      ↓
-Silver Layer
-      ↓
-Gold Layer
+                     gold.dim_customers
+                             |
+                             |
+                      customer_key
+                             |
+                             |
+gold.dim_products ---- gold.fact_sales
+      product_key             |
+                              |
+                       customer_key
 ```
 
-allowing every metric to be traced back to its original source.
+The Gold layer exposes a reporting-friendly Star Schema while preserving the Silver layer as the single source of truth.
+
+---
+
+# ⚙️ Data Quality Framework
+
+The project incorporates automated data quality validation to ensure data integrity throughout the pipeline.
+
+## Validation Categories
+
+### Business Key Validation
+
+Ensures:
+
+* No missing identifiers
+* No duplicate business keys
+* Consistent record grain
+
+### Referential Integrity
+
+Verifies:
+
+* No orphan sales records
+* Valid customer relationships
+* Valid product relationships
+
+### Chronological Validation
+
+Checks:
+
+* Order Date ≤ Shipping Date
+* Product Start Date ≤ Product End Date
+
+### Financial Validation
+
+Ensures:
+
+```text
+Sales Amount = Quantity × Price
+```
+
+for every sales transaction.
+
+---
+
+# 🧪 Testing Framework
+
+The repository includes a dedicated testing suite:
+
+```text
+tests/silver_data_quality_tests.sql
+```
+
+The framework follows an Exception Testing methodology.
+
+### Expected Result
+
+Every validation query should return:
+
+```text
+0 Rows Returned
+```
+
+Any returned records indicate data quality issues requiring investigation.
 
 ---
 
@@ -330,7 +381,7 @@ sqlcmd -S <server_name> -d master -i scripts/init_database_and_Schemas.sql
 
 Creates:
 
-* Data Warehouse database
+* DataWarehouse database
 * Bronze schema
 * Silver schema
 * Gold schema
@@ -340,11 +391,11 @@ Creates:
 ## Step 2 – Deploy Bronze Layer
 
 ```bash
-sqlcmd -S <server_name> -d datawarehouse -i scripts/bronze/build_tables.sql
+sqlcmd -S <server_name> -d DataWarehouse -i scripts/bronze/build_tables.sql
 
-sqlcmd -S <server_name> -d datawarehouse -i scripts/bronze/create_stored_procedure.sql
+sqlcmd -S <server_name> -d DataWarehouse -i scripts/bronze/create_stored_procedure.sql
 
-sqlcmd -S <server_name> -d datawarehouse -i scripts/bronze/populating_tables.sql
+sqlcmd -S <server_name> -d DataWarehouse -i scripts/bronze/populating_tables.sql
 ```
 
 ---
@@ -352,9 +403,9 @@ sqlcmd -S <server_name> -d datawarehouse -i scripts/bronze/populating_tables.sql
 ## Step 3 – Deploy Silver Layer
 
 ```bash
-sqlcmd -S <server_name> -d datawarehouse -i scripts/silver/table_creation.sql
+sqlcmd -S <server_name> -d DataWarehouse -i scripts/silver/table_creation.sql
 
-sqlcmd -S <server_name> -d datawarehouse -i scripts/silver_layer_stored_procedure.sql
+sqlcmd -S <server_name> -d DataWarehouse -i scripts/silver_layer_stored_procedure.sql
 ```
 
 ---
@@ -362,69 +413,12 @@ sqlcmd -S <server_name> -d datawarehouse -i scripts/silver_layer_stored_procedur
 ## Step 4 – Deploy Gold Layer
 
 ```bash
-sqlcmd -S <server_name> -d datawarehouse -i scripts/gold/gold.dim_customers.sql
+sqlcmd -S <server_name> -d DataWarehouse -i scripts/gold/gold.dim_customers.sql
 
-sqlcmd -S <server_name> -d datawarehouse -i scripts/gold/gold.dim_products.sql
+sqlcmd -S <server_name> -d DataWarehouse -i scripts/gold/gold.dim_products.sql
 
-sqlcmd -S <server_name> -d datawarehouse -i scripts/gold/gold.fact_sales.sql
+sqlcmd -S <server_name> -d DataWarehouse -i scripts/gold/gold.fact_sales.sql
 ```
-
----
-
-# 🧪 Data Quality Assurance
-
-The repository contains a dedicated testing framework:
-
-```text
-tests/silver_data_quality_tests.sql
-```
-
-The testing suite follows an Exception Testing methodology.
-
-### Success Criteria
-
-Every validation query must return:
-
-```text
-0 Rows Returned
-```
-
-Any returned rows indicate a data quality issue requiring investigation.
-
-## Validation Categories
-
-### Business Key Validation
-
-Checks:
-
-* Missing identifiers
-* Duplicate records
-* Invalid business keys
-
-### Referential Integrity
-
-Ensures:
-
-* No orphan transactions
-* Valid customer relationships
-* Valid product relationships
-
-### Timeline Validation
-
-Verifies:
-
-* Order Date ≤ Ship Date
-* Product Start Date ≤ End Date
-
-### Financial Validation
-
-Ensures:
-
-```text
-Sales = Quantity × Price
-```
-
-across all transactions.
 
 ---
 
@@ -452,6 +446,20 @@ ORDER BY
 
 ---
 
+# 📈 Business Capabilities
+
+The warehouse enables:
+
+* Customer Segmentation Analysis
+* Product Performance Analysis
+* Revenue Trend Reporting
+* Geographic Sales Analysis
+* Customer Lifetime Value Analysis
+* Product Category Reporting
+* Executive KPI Dashboards
+
+---
+
 # 🛠️ Technologies Used
 
 * Microsoft SQL Server
@@ -460,9 +468,9 @@ ORDER BY
 * SQLCMD
 * Data Warehousing
 * Medallion Architecture
-* Star Schema Modeling
-* Data Quality Engineering
+* Virtualized Star Schema
 * Dimensional Modeling
+* Data Quality Engineering
 
 ---
 
@@ -470,14 +478,15 @@ ORDER BY
 
 * Enterprise Data Warehouse Design
 * ETL Development
+* Data Modeling
 * Data Quality Engineering
 * SQL Performance Optimization
-* Star Schema Design
 * Dimensional Modeling
-* Master Data Management
-* Data Governance
-* Business Intelligence Preparation
-* SQL Server Administration
+* Star Schema Design
+* Semantic Layer Design
+* Virtualized Data Warehousing
+* Master Data Integration
+* Business Intelligence Enablement
 
 ---
 
@@ -485,4 +494,4 @@ ORDER BY
 
 This project is intended for educational, portfolio, and professional demonstration purposes.
 
-Feel free to fork, modify, and extend the solution for additional reporting, analytics, and cloud data platform integrations.
+Feel free to fork, modify, and extend the solution for additional analytics, reporting, and cloud data platform integrations.
